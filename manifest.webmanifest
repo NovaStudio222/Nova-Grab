@@ -1,0 +1,9 @@
+{
+  "name": "NOVA GRAB",
+  "short_name": "NOVA GRAB",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#10152f",
+  "theme_color": "#10152f",
+  "icons": []
+}

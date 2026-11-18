@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10152f">
+<title>NOVA GRAB</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10152f;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
+body{display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,#28376c 0,#10152f 60%)}
+#game{position:relative;width:min(100vw,56.25vh);height:min(100vh,177.78vw);max-width:480px;max-height:854px;overflow:hidden;background:linear-gradient(#17234b,#10152f 75%);box-shadow:0 0 45px #0008}
+canvas{width:100%;height:100%;display:block}
+.hud{position:absolute;top:env(safe-area-inset-top,12px);left:0;right:0;display:flex;justify-content:space-between;padding:16px 18px;font-weight:800;text-shadow:0 2px 5px #0008;pointer-events:none}
+.pill{background:#ffffff18;border:1px solid #ffffff30;border-radius:20px;padding:7px 12px;backdrop-filter:blur(8px)}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:26px;background:#090e25b8;text-align:center}
+.panel{width:100%;max-width:350px;padding:27px 22px;border:1px solid #ffffff35;border-radius:26px;background:linear-gradient(145deg,#27386c,#172044);box-shadow:0 18px 60px #0008}
+h1{font-size:clamp(30px,8vw,42px);line-height:1.05;margin:0 0 10px}p{color:#dbe4ff;line-height:1.5;margin:10px 0 20px}
+button{border:0;border-radius:16px;padding:14px 20px;width:100%;font-size:17px;font-weight:850;color:#182044;background:linear-gradient(135deg,#ffe66d,#ffb84d);box-shadow:0 5px 0 #c77a26;cursor:pointer}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #c77a26}
+.small{font-size:12px;color:#c2cbea;margin-top:17px}
+#pause{position:absolute;right:15px;top:65px;width:auto;padding:7px 12px;font-size:13px;background:#ffffff20;color:white;box-shadow:none;border:1px solid #ffffff40}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="game">
+ <canvas id="c" aria-label="Catch falling stars game"></canvas>
+ <div class="hud"><div class="pill">⭐ <span id="score">0</span></div><div class="pill">❤️ <span id="lives">3</span></div><div class="pill">BEST <span id="best">0</span></div></div>
+ <button id="pause" class="hidden">Ⅱ Pause</button>
+ <div id="overlay" class="overlay">
+  <div class="panel">
+   <div style="font-size:54px;margin-bottom:8px">🌟🧺</div>
+   <h1 id="title">NOVA<br>GRAB</h1>
+   <p id="message">Move your basket to catch the golden stars. Dodge the bombs! You have three lives.</p>
+   <button id="start">PLAY NOW</button>
+   <div class="small">Drag your finger or move with ← → keys</div>
+  </div>
+ </div>
+</div>
+<script>
+(()=>{
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d'),game=document.getElementById('game');
+const scoreEl=document.getElementById('score'),livesEl=document.getElementById('lives'),bestEl=document.getElementById('best');
+const overlay=document.getElementById('overlay'),title=document.getElementById('title'),message=document.getElementById('message'),startBtn=document.getElementById('start'),pauseBtn=document.getElementById('pause');
+let W=400,H=710,player,items=[],particles=[],score=0,lives=3,best=+(localStorage.getItem('ctfs-best')||0),running=false,paused=false,last=0,spawn=0,keys={},pointer=null;
+bestEl.textContent=best;
+function resize(){const r=game.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=W*d;canvas.height=H*d;ctx.setTransform(d,0,0,d,0,0);if(player)player.y=H-78;}
+addEventListener('resize',resize);resize();
+function reset(){score=0;lives=3;items=[];particles=[];spawn=0;player={x:W/2,y:H-78,w:76,h:30};updateHud();}
+function updateHud(){scoreEl.textContent=score;livesEl.textContent=lives;bestEl.textContent=best;}
+function begin(){reset();overlay.classList.add('hidden');pauseBtn.classList.remove('hidden');running=true;paused=false;last=performance.now();requestAnimationFrame(loop);}
+function end(){running=false;pauseBtn.classList.add('hidden');title.textContent='Game Over!';message.textContent=`You caught ${score} star${score===1?'':'s'}. ${score>best?'New personal best!':'Can you beat your best score of '+best+'?'}`;startBtn.textContent='PLAY AGAIN';overlay.classList.remove('hidden');}
+function togglePause(){if(!running)return;paused=!paused;pauseBtn.textContent=paused?'▶ Resume':'Ⅱ Pause';if(!paused){last=performance.now();requestAnimationFrame(loop);}}
+startBtn.addEventListener('click',begin);pauseBtn.addEventListener('click',togglePause);
+function pos(e){const r=canvas.getBoundingClientRect();return (e.clientX-r.left)/r.width*W;}
+canvas.addEventListener('pointerdown',e=>{pointer=pos(e);canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(pointer!==null&&running&&!paused)player.x=pos(e);});
+canvas.addEventListener('pointerup',()=>pointer=null);canvas.addEventListener('pointercancel',()=>pointer=null);
+addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(e.key==='Escape')togglePause();});
+addEventListener('keyup',e=>keys[e.key]=false);
+function spawnItem(){const bomb=Math.random()<.22;items.push({x:24+Math.random()*(W-48),y:-30,r:bomb?16:13,bomb,speed:145+Math.random()*90+score*1.7,rot:Math.random()*6});}
+function burst(x,y,color){for(let i=0;i<9;i++)particles.push({x,y,vx:(Math.random()-.5)*180,vy:(Math.random()-.7)*180,life:.55,color});}
+function drawBasket(){const x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.fillStyle='#f4a340';ctx.strokeStyle='#ffe0a0';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,-2,25,Math.PI,0);ctx.stroke();ctx.beginPath();ctx.moveTo(-36,0);ctx.lineTo(-29,24);ctx.quadraticCurveTo(0,35,29,24);ctx.lineTo(36,0);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#ffd17a';ctx.lineWidth=2;for(let i=-20;i<=20;i+=10){ctx.beginPath();ctx.moveTo(i,3);ctx.lineTo(i*.8,24);ctx.stroke();}ctx.restore();}
+function drawBackground(){ctx.clearRect(0,0,W,H);for(let i=0;i<45;i++){let x=(i*83)%W,y=(i*137+performance.now()*.012)%H;ctx.globalAlpha=.2+(i%4)*.12;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,i%3===0?1.6:1,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+function loop(now){if(!running||paused)return;let dt=Math.min((now-last)/1000,.035);last=now;drawBackground();
+if(keys.ArrowLeft)player.x-=300*dt;if(keys.ArrowRight)player.x+=300*dt;player.x=Math.max(40,Math.min(W-40,player.x));
+spawn+=dt;let interval=Math.max(.34,.85-score*.003);if(spawn>interval){spawn=0;spawnItem();}
+for(let i=items.length-1;i>=0;i--){let a=items[i];a.y+=a.speed*dt;a.rot+=dt*2;ctx.save();ctx.translate(a.x,a.y);ctx.rotate(Math.sin(a.rot)*.15);ctx.font=`${a.bomb?30:28}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(a.bomb?'💣':'⭐',0,0);ctx.restore();
+if(a.y>player.y-8&&a.y<player.y+28&&Math.abs(a.x-player.x)<43){if(a.bomb){lives--;burst(a.x,a.y,'#ff6262');}else{score++;burst(a.x,a.y,'#ffe66d');}items.splice(i,1);if(score>best){best=score;localStorage.setItem('ctfs-best',best);}updateHud();if(lives<=0){end();return;}}
+else if(a.y>H+35)items.splice(i,1);
+}
+for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;ctx.globalAlpha=Math.max(0,p.life*1.8);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,7);ctx.fill();if(p.life<=0)particles.splice(i,1);}ctx.globalAlpha=1;
+drawBasket();requestAnimationFrame(loop);}
+})();
+</script>
+</body></html>
