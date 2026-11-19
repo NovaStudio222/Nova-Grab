@@ -1,2 +1,2 @@
 # Nova-Grab
-NOVA GRAB - An exciting cosmic star-catching arcade game. 
+NOVA GRAB - First public game project by NovaStudio222
