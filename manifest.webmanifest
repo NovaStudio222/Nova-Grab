@@ -1,9 +1,9 @@
 {
-  "name": "NOVA GRAB",
+  "name": "NOVA GRAB 2.0",
   "short_name": "NOVA GRAB",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#10152f",
-  "theme_color": "#10152f",
-  "icons": []
+  "background_color": "#090d24",
+  "theme_color": "#090d24",
+  "description": "Catch the stars. Dodge the danger."
 }
